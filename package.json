@@ -1,0 +1,17 @@
+{
+  "name": "quiz-app",
+  "version": "1.0.0",
+  "description": "Real-time multiplayer quiz application",
+  "scripts": {
+    "dev": "concurrently \"cd client && npm run dev\" \"python -m uvicorn server.main:sio_app --reload --port 8000\"",
+    "build": "cd client && npm install && npm run build",
+    "preview": "cd client && npm run preview",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "mongodb": "^7.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0"
+  }
+}

@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+python-socketio
+motor
+pymongo
+python-dotenv
+dnspython

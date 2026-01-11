@@ -1,0 +1,54 @@
+# Environment files
+.env
+.env.local
+.env.production
+.env.backup
+*.env
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build outputs
+dist/
+build/
+.vercel/
+.output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+.ruff_cache/
+test-results/
+playwright-report/
+coverage/
+*.coverage
+
+# Editor directories and files
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary files
+nul
+*.tmp
+*.temp
+
+# Database
+*.db
+*.sqlite
