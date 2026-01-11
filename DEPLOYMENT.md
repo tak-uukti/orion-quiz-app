@@ -2,11 +2,18 @@
 
 This guide covers deploying your quiz app to production. The frontend will be deployed to **Vercel**, and the backend needs to be deployed to a platform that supports WebSockets.
 
+## ⚠️ IMPORTANT: Vercel Backend Limitation
+
+**DO NOT deploy the backend to Vercel!** Vercel's serverless architecture does not support persistent WebSocket connections required by Socket.IO. Your real-time quiz features will fail.
+
+✅ **Frontend (client/)** → Vercel (Perfect!)
+❌ **Backend (server/)** → NOT Vercel (Use Railway/Render/Heroku)
+
 ## Architecture Overview
 
-- **Frontend**: React + Vite → Deploy to Vercel
-- **Backend**: FastAPI + Socket.IO → Deploy to Railway/Render/Heroku
-- **Database**: MongoDB → MongoDB Atlas (recommended)
+- **Frontend**: React + Vite → Deploy to Vercel ✅
+- **Backend**: FastAPI + Socket.IO → Deploy to Railway/Render/Heroku ✅
+- **Database**: MongoDB → MongoDB Atlas (recommended) ✅
 
 ## 🎯 Quick Deployment Steps
 
