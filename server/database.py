@@ -18,7 +18,10 @@ motor_client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
 database = motor_client[DATABASE_NAME]
 
 # Collections
+# Collections
 sessions_collection = database["sessions"]
+quizzes_collection = database["quizzes"]
+responses_collection = database["responses"]
 
 async def create_game_session(room_id, quiz_data):
     """Creates a new game session in the database."""
@@ -41,14 +44,46 @@ async def add_player_to_session(room_id, player_data):
         {"$push": {"players": player_data}}
     )
 
+async def create_quiz(quiz_data: dict):
+    """Creates a new quiz."""
+    quiz_data["created_at"] = datetime.utcnow()
+    result = await quizzes_collection.insert_one(quiz_data)
+    return str(result.inserted_id)
+
+async def get_quizzes():
+    """Returns a list of all quizzes."""
+    quizzes = []
+    async for quiz in quizzes_collection.find():
+        quiz["id"] = str(quiz["_id"])
+        del quiz["_id"]
+        quizzes.append(quiz)
+    return quizzes
+
+async def get_quiz(quiz_id: str):
+    """Returns a single quiz by ID."""
+    from bson import ObjectId
+    try:
+        quiz = await quizzes_collection.find_one({"_id": ObjectId(quiz_id)})
+        if quiz:
+            quiz["id"] = str(quiz["_id"])
+            del quiz["_id"]
+        return quiz
+    except:
+        return None
+
 async def save_response(room_id, response_data):
-    """Saves a player's response."""
+    """Saves a player's response to the dedicated collection."""
     # response_data: { "sid": ..., "question_index": ..., "answer_index": ..., "is_correct": ..., "score_awarded": ... }
+    response_data["room_id"] = room_id
     response_data["timestamp"] = datetime.utcnow()
-    await sessions_collection.update_one(
-        {"room_id": room_id},
-        {"$push": {"responses": response_data}}
-    )
+    await responses_collection.insert_one(response_data)
+
+async def get_room_responses(room_id):
+    """Retrieves all responses for a specific room."""
+    responses = []
+    async for r in responses_collection.find({"room_id": room_id}):
+        responses.append(r)
+    return responses
 
 async def update_session_status(room_id, status):
     """Updates the status of the session (e.g., STARTED, FINISHED)."""

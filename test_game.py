@@ -2,13 +2,21 @@
 import asyncio
 import socketio
 import sys
+import httpx
 
 # Create two clients
 host_sio = socketio.AsyncClient()
 player_sio = socketio.AsyncClient()
 
-SERVER_URL = 'http://localhost:8000'
+
+
+
+SERVER_URL = 'http://127.0.0.1:8000'
 room_id = None
+quiz_id_created = None
+
+
+
 
 @host_sio.event
 async def connect():
@@ -58,18 +66,36 @@ async def game_joined(data):
 async def error(data):
     print(f"Player Error: {data}")
 
-async def main():
-    try:
-        await host_sio.connect(SERVER_URL)
-        
-        # Create Quiz
+async def create_quiz_via_api():
+    async with httpx.AsyncClient() as client:
         quiz_data = {
-            'title': 'Test Quiz',
+            'title': 'Test Quiz API',
             'questions': [
                 {'title': 'Q1', 'options': ['A','B','C','D'], 'correctOption': 0, 'timeLimit': 10}
             ]
         }
-        await host_sio.emit('create_game', {'quizData': quiz_data})
+        resp = await client.post(f"{SERVER_URL}/api/quizzes", json=quiz_data)
+        if resp.status_code == 200:
+            return resp.json()['id']
+        else:
+            print(f"Failed to create quiz: {resp.text}")
+            return None
+
+async def main():
+    global quiz_id_created
+    try:
+        # Create Quiz via API first
+        quiz_id_created = await create_quiz_via_api()
+        if not quiz_id_created:
+            print("Aborting test due to API failure")
+            return
+
+        print(f"Quiz created via API with ID: {quiz_id_created}")
+
+        await host_sio.connect(SERVER_URL)
+        
+        # Create Game using Quiz ID
+        await host_sio.emit('create_game', {'quizId': quiz_id_created})
         
         # Wait for room creation
         await asyncio.sleep(1)

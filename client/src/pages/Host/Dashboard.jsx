@@ -7,6 +7,7 @@ const HostDashboard = () => {
     const navigate = useNavigate();
     const [quizzes, setQuizzes] = useState([]);
     const [showCreate, setShowCreate] = useState(false);
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     // New Quiz State
     const [newQuizTitle, setNewQuizTitle] = useState('');
@@ -15,34 +16,38 @@ const HostDashboard = () => {
     ]);
 
     useEffect(() => {
-        const saved = localStorage.getItem('quizzes');
-        if (saved) {
-            setQuizzes(JSON.parse(saved));
-        } else {
-            // Default Sample Quiz
-            const sample = {
-                id: Date.now(),
-                title: 'General Knowledge',
-                questions: [
-                    { title: 'What is the capital of France?', options: ['London', 'Berlin', 'Paris', 'Madrid'], correctOption: 2, timeLimit: 20 },
-                    { title: 'Which planet is known as the Red Planet?', options: ['Mars', 'Venus', 'Jupiter', 'Saturn'], correctOption: 0, timeLimit: 20 }
-                ]
-            };
-            setQuizzes([sample]);
-            localStorage.setItem('quizzes', JSON.stringify([sample]));
-        }
+        fetchQuizzes();
 
         // Listen for game created event
         if (socket) {
             socket.on('game_created', ({ roomId }) => {
                 navigate(`/host/game/${roomId}`);
             });
+
+            socket.on('error', ({ message }) => {
+                alert(message);
+            });
         }
 
         return () => {
-            if (socket) socket.off('game_created');
+            if (socket) {
+                socket.off('game_created');
+                socket.off('error');
+            }
         }
     }, [socket, navigate]);
+
+    const fetchQuizzes = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/quizzes`);
+            if (res.ok) {
+                const data = await res.json();
+                setQuizzes(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch quizzes", err);
+        }
+    };
 
     const handleAddQuestion = () => {
         setQuestions([...questions, { title: '', options: ['', '', '', ''], correctOption: 0, timeLimit: 20 }]);
@@ -60,23 +65,41 @@ const HostDashboard = () => {
         setQuestions(newQ);
     };
 
-    const saveQuiz = () => {
-        const quiz = {
-            id: Date.now(),
+    const saveQuiz = async () => {
+        if (!newQuizTitle.trim()) {
+            alert("Please enter a quiz title");
+            return;
+        }
+
+        const quizData = {
             title: newQuizTitle,
             questions: questions
         };
-        const updated = [...quizzes, quiz];
-        setQuizzes(updated);
-        localStorage.setItem('quizzes', JSON.stringify(updated));
-        setShowCreate(false);
-        setNewQuizTitle('');
-        setQuestions([{ title: '', options: ['', '', '', ''], correctOption: 0, timeLimit: 20 }]);
+
+        try {
+            const res = await fetch(`${API_URL}/api/quizzes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(quizData)
+            });
+
+            if (res.ok) {
+                await fetchQuizzes();
+                setShowCreate(false);
+                setNewQuizTitle('');
+                setQuestions([{ title: '', options: ['', '', '', ''], correctOption: 0, timeLimit: 20 }]);
+            } else {
+                alert("Failed to save quiz");
+            }
+        } catch (err) {
+            console.error("Error saving quiz:", err);
+            alert("Error saving quiz");
+        }
     };
 
     const startQuiz = (quiz) => {
         if (socket) {
-            socket.emit('create_game', { quizData: quiz });
+            socket.emit('create_game', { quizId: quiz.id });
         }
     };
 
@@ -91,6 +114,7 @@ const HostDashboard = () => {
                     </button>
 
                     <div style={{ display: 'grid', gap: '1rem' }}>
+                        {quizzes.length === 0 && <p>No quizzes found. Create one to get started!</p>}
                         {quizzes.map(q => (
                             <div key={q.id} style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
